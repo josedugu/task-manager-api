@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Toaster } from "sonner";
 import { useAuth } from "./context/AuthContext";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
@@ -11,16 +12,19 @@ const ProtectedRoute = () => {
 
 function App() {
 	return (
-		<Routes>
-			<Route path="/login" element={<LoginPage />} />
+		<>
+			<Toaster position="top-right" richColors />
+			<Routes>
+				<Route path="/login" element={<LoginPage />} />
 
-			{/* Protected Routes */}
-			<Route element={<ProtectedRoute />}>
-				<Route path="/" element={<DashboardPage />} />
-			</Route>
+				{/* Protected Routes */}
+				<Route element={<ProtectedRoute />}>
+					<Route path="/" element={<DashboardPage />} />
+				</Route>
 
-			<Route path="*" element={<Navigate to="/" replace />} />
-		</Routes>
+				<Route path="*" element={<Navigate to="/" replace />} />
+			</Routes>
+		</>
 	);
 }
 
