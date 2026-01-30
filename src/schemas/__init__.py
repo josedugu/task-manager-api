@@ -16,7 +16,7 @@ from src.schemas.comment import CommentCreate, CommentResponse
 from src.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 
 # User schemas
-from src.schemas.user import UserCreate, UserLogin, UserResponse
+from src.schemas.user import UserCreate, UserLogin, UserResponse, UserSummary
 
 __all__ = [
     # Auth
@@ -27,6 +27,7 @@ __all__ = [
     "UserCreate",
     "UserLogin",
     "UserResponse",
+    "UserSummary",
     # Task
     "TaskCreate",
     "TaskUpdate",

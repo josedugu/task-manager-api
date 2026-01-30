@@ -41,3 +41,10 @@ class UserLogin(BaseModel):
 
     username: str  # Puede ser username o email
     password: str
+
+
+class UserSummary(BaseModel):
+    id: int
+    username: str
+    role: str
+    model_config = {"from_attributes": True}

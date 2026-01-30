@@ -4,6 +4,7 @@ Contiene lógica de negocio para CRUD de tareas, comentarios y activity logs.
 """
 
 import logging
+from datetime import timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -75,6 +76,11 @@ class TaskService:
     ) -> TaskResponse:
         logger.info(f"Creating task for user_id={user.id}")
 
+        if task_data.due_date and task_data.due_date.tzinfo:
+            task_data.due_date = task_data.due_date.astimezone(timezone.utc).replace(
+                tzinfo=None
+            )
+
         new_task = Task(
             title=task_data.title,
             description=task_data.description,
@@ -138,6 +144,11 @@ class TaskService:
         )
         if not can_modify:
             raise HTTPException(status_code=403, detail="Not authorized")
+
+        if task_data.due_date and task_data.due_date.tzinfo:
+            task_data.due_date = task_data.due_date.astimezone(timezone.utc).replace(
+                tzinfo=None
+            )
 
         # Update fields
         update_dict = task_data.model_dump(exclude_unset=True)
