@@ -1,8 +1,12 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { useAuth } from "./context/AuthContext";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
+
+// Create a client
+const queryClient = new QueryClient();
 
 // Protected Route Wrapper
 const ProtectedRoute = () => {
@@ -12,8 +16,8 @@ const ProtectedRoute = () => {
 
 function App() {
 	return (
-		<>
-			<Toaster position="top-right" richColors />
+		<QueryClientProvider client={queryClient}>
+			<Toaster position="bottom-right" richColors />
 			<Routes>
 				<Route path="/login" element={<LoginPage />} />
 
@@ -24,7 +28,7 @@ function App() {
 
 				<Route path="*" element={<Navigate to="/" replace />} />
 			</Routes>
-		</>
+		</QueryClientProvider>
 	);
 }
 

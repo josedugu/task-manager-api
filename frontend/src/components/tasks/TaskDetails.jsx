@@ -1,53 +1,98 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { commentSchema } from "@/schemas/comment.schema";
-import { taskService } from "@/services/task.service";
+import { useTaskDetails, useAddComment } from "@/hooks/useTasks";
+import {
+  History,
+  MessageSquare,
+  User,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Edit,
+} from "lucide-react";
 
-export default function TaskDetails({ taskId }) {
-  const [comments, setComments] = useState([]);
-  const [history, setHistory] = useState([]);
+export default function TaskDetails({ taskId, users = [] }) {
   const [activeTab, setActiveTab] = useState("comments"); // comments | history
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(commentSchema),
   });
 
-  // Use a consistent load function
-  const loadData = async () => {
-    try {
-      const [c, h] = await Promise.all([
-        taskService.getComments(taskId),
-        taskService.getHistory(taskId),
-      ]);
-      setComments(c);
-      setHistory(h);
-    } catch (error) {
-      console.error("Failed to load details", error);
-    }
+  // React Query
+  const { data, isLoading } = useTaskDetails(taskId);
+  const comments = data?.comments || [];
+  const history = data?.history || [];
+
+  const addCommentMutation = useAddComment(taskId);
+
+  const handleAddComment = (data) => {
+    addCommentMutation.mutate(data.content, {
+      onSuccess: () => {
+        reset();
+      },
+    });
   };
 
-  // Initial load
-  useEffect(() => {
-    loadData();
-  }, [taskId]);
+  if (isLoading) {
+    return <div className="text-gray-400 text-sm mt-4">Loading details...</div>;
+  }
 
-  const handleAddComment = async (data) => {
-    try {
-      await taskService.addComment(taskId, data.content);
-      reset();
-      await loadData();
-      toast.success("Comment added");
-    } catch (error) {
-      console.error("Failed to add comment", error);
-      toast.error("Failed to add comment");
+  // Helper to format history
+  const getHistoryIcon = (action) => {
+    if (action.includes("CREATE")) return <Plus size={14} className="text-green-600" />;
+    if (action.includes("DELETE")) return <AlertCircle size={14} className="text-red-600" />;
+    if (action.includes("UPDATE")) return <Edit size={14} className="text-blue-600" />;
+    return <History size={14} className="text-gray-500" />;
+  };
+
+  const formatHistoryDetails = (details) => {
+    // Example: "assigned_to_id: None -> 4"
+    if (details.includes("assigned_to_id")) {
+      // Extract IDs
+      const match = details.match(/assigned_to_id: (.*) -> (.*)/);
+      if (match) {
+        const [_, from, to] = match;
+        const fromName =
+          from === "None"
+            ? "Unassigned"
+            : users.find((u) => u.id === parseInt(from))?.username || from;
+        const toName =
+          to === "None"
+            ? "Unassigned"
+            : users.find((u) => u.id === parseInt(to))?.username || to;
+        return (
+          <span>
+            Changed assignee from <strong>{fromName}</strong> to{" "}
+            <strong>{toName}</strong>
+          </span>
+        );
+      }
     }
+    if (details.includes("status")) {
+      const match = details.match(/status: (.*) -> (.*)/);
+      if (match) {
+        const [_, from, to] = match;
+        return (
+          <span>
+            Changed status from <strong className="uppercase">{from}</strong> to{" "}
+            <strong className="uppercase">{to}</strong>
+          </span>
+        );
+      }
+    }
+    // Fallback for simple replaces or unknown formats
+    return details
+      .replace("title:", "Title changed:")
+      .replace("description:", "Description changed:")
+      .replace("due_date:", "Due date changed:");
   };
 
   return (
@@ -55,33 +100,34 @@ export default function TaskDetails({ taskId }) {
       <div className="flex gap-4 mb-4 border-b border-gray-100">
         <button
           type="button"
-          className={`pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "comments"
+          className={`flex items-center gap-2 pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "comments"
               ? "border-blue-600 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           onClick={() => setActiveTab("comments")}
         >
-          Comments ({comments.length})
+          <MessageSquare size={14} /> Comments ({comments.length})
         </button>
         <button
           type="button"
-          className={`pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "history"
+          className={`flex items-center gap-2 pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "history"
               ? "border-blue-600 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           onClick={() => setActiveTab("history")}
         >
-          History
+          <History size={14} /> History
         </button>
       </div>
 
       {activeTab === "comments" && (
         <div>
-          <div className="max-h-60 overflow-y-auto mb-4 space-y-3">
+          <div className="max-h-60 overflow-y-auto mb-4 space-y-3 custom-scrollbar">
             {comments.map((c) => (
               <div key={c.id} className="bg-gray-50 p-3 rounded-md">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="font-medium text-sm text-gray-900">
+                  <span className="font-medium text-sm text-gray-900 flex items-center gap-2">
+                    <User size={12} className="text-gray-400" />
                     {c.user?.username || "Unknown"}
                   </span>
                   <span className="text-xs text-gray-400">
@@ -102,10 +148,17 @@ export default function TaskDetails({ taskId }) {
             className="flex gap-2 items-start"
           >
             <div className="flex-1">
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                 placeholder="Add a comment..."
+                rows="1"
                 {...register("content")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(handleAddComment)();
+                  }
+                }}
               />
               {errors.content && (
                 <p className="text-red-500 text-xs mt-1">
@@ -116,25 +169,36 @@ export default function TaskDetails({ taskId }) {
             <button
               type="submit"
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm font-medium"
-              disabled={isSubmitting}
+              disabled={addCommentMutation.isPending}
             >
-              Send
+              {addCommentMutation.isPending ? "..." : "Send"}
             </button>
           </form>
         </div>
       )}
 
       {activeTab === "history" && (
-        <div className="max-h-60 overflow-y-auto space-y-2">
+        <div className="max-h-60 overflow-y-auto space-y-0 relative">
+          {/* Vertical Line */}
+          {history.length > 0 && (
+            <div className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-gray-200 z-0"></div>
+          )}
+
           {history.map((h) => (
-            <div
-              key={h.id}
-              className="text-sm pl-3 border-l-2 border-gray-200 py-1"
-            >
-              <span className="font-semibold text-gray-800">{h.action}</span>:{" "}
-              {h.details}
-              <div className="text-xs text-gray-400 mt-1">
-                {new Date(h.created_at).toLocaleString()}
+            <div key={h.id} className="relative z-10 flex gap-4 pl-0 py-3 group">
+              <div className="w-5 h-5 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center shrink-0 mt-0.5 group-hover:border-blue-400 transition-colors">
+                {getHistoryIcon(h.action)}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-800 leading-snug">
+                  {formatHistoryDetails(h.details)}
+                </p>
+                <div className="text-xs text-gray-400 mt-1 flex justify-between items-center">
+                  <span>{new Date(h.created_at).toLocaleString()}</span>
+                  <span className="font-mono text-[10px] bg-gray-100 px-1 rounded text-gray-500 uppercase tracking-wider">
+                    {h.action.split(":")[0]}
+                  </span>
+                </div>
               </div>
             </div>
           ))}

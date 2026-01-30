@@ -1,51 +1,43 @@
 import { LogOut, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { taskService } from "@/services/task.service";
-import { userService } from "@/services/user.service";
 import TaskCard from "@/components/tasks/TaskCard";
 import TaskFormModal from "@/components/tasks/TaskFormModal";
+import {
+	useTasks,
+	useCreateTask,
+	useUpdateTask,
+	useDeleteTask,
+	useUpdateTaskStatus,
+} from "@/hooks/useTasks";
+import { useUsers } from "@/hooks/useUsers";
 
 export default function DashboardPage() {
 	const { user, logout } = useAuth();
-	const [tasks, setTasks] = useState([]);
-	const [users, setUsers] = useState([]); // List of users for assignment
+
+	// Local UI State
 	const [statusFilter, setStatusFilter] = useState("");
-	const [loading, setLoading] = useState(true);
 	const [expandedTask, setExpandedTask] = useState(null);
-
-	// Modal State
-	const [modalMode, setModalMode] = useState("create"); // create | edit
+	const [modalMode, setModalMode] = useState("create");
 	const [isModalOpen, setModalOpen] = useState(false);
-	const [currentTask, setCurrentTask] = useState(null); // Task being edited
+	const [currentTask, setCurrentTask] = useState(null);
 
-	const fetchTasks = useCallback(async () => {
-		setLoading(true);
-		try {
-			const data = await taskService.getAll(statusFilter || null);
-			setTasks(data);
-		} catch (error) {
-			console.error("Failed to fetch tasks", error);
-			toast.error("Failed to load tasks");
-		} finally {
-			setLoading(false);
-		}
-	}, [statusFilter]);
+	// Queries
+	const { data: tasks = [], isLoading: isLoadingTasks, error } = useTasks(statusFilter);
+	const { data: users = [] } = useUsers();
 
-	const fetchUsers = useCallback(async () => {
-		try {
-			const data = await userService.getAll();
-			setUsers(data);
-		} catch (error) {
-			console.error("Failed to fetch users", error);
-		}
-	}, []);
+	// Mutations
+	const createTaskMutation = useCreateTask(() => setModalOpen(false));
+	const updateTaskMutation = useUpdateTask(() => setModalOpen(false));
+	const deleteTaskMutation = useDeleteTask();
+	const updateStatusMutation = useUpdateTaskStatus();
 
-	useEffect(() => {
-		fetchTasks();
-		fetchUsers();
-	}, [fetchTasks, fetchUsers]);
+	if (error) {
+		console.error("Failed to load tasks", error);
+		// Note: toast.error might be called too many times if put in render.
+		// React Query handles stale/caching, error stays until resolved.
+	}
 
 	const openCreateModal = () => {
 		setModalMode("create");
@@ -60,52 +52,28 @@ export default function DashboardPage() {
 	};
 
 	const handleModalSubmit = async (data) => {
-		try {
-			const payload = {
-				...data,
-				due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
-				assigned_to_id: data.assigned_to_id
-					? parseInt(data.assigned_to_id, 10)
-					: null,
-			};
+		const payload = {
+			...data,
+			due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
+			assigned_to_id: data.assigned_to_id
+				? parseInt(data.assigned_to_id, 10)
+				: null,
+		};
 
-			if (modalMode === "create") {
-				await taskService.create({ ...payload, status: "todo" });
-				toast.success("Task created successfully");
-			} else {
-				await taskService.update(currentTask.id, payload);
-				toast.success("Task updated successfully");
-			}
-
-			setModalOpen(false);
-			fetchTasks();
-		} catch (_error) {
-			toast.error(
-				`Error ${modalMode === "create" ? "creating" : "updating"} task`
-			);
+		if (modalMode === "create") {
+			createTaskMutation.mutate({ ...payload, status: "todo" });
+		} else {
+			updateTaskMutation.mutate({ id: currentTask.id, payload });
 		}
 	};
 
-	const handleDelete = async (id) => {
+	const handleDelete = (id) => {
 		if (!confirm("Are you sure you want to delete this task?")) return;
-		try {
-			await taskService.delete(id);
-			toast.success("Task deleted");
-			fetchTasks();
-		} catch (_error) {
-			toast.error("Error deleting task (Only Owner/Creator can delete)");
-		}
+		deleteTaskMutation.mutate(id);
 	};
 
-	const handleStatusChange = async (task, newStatus) => {
-		try {
-			await taskService.update(task.id, { status: newStatus });
-			toast.success("Status updated");
-			fetchTasks();
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to update status");
-		}
+	const handleStatusChange = (task, newStatus) => {
+		updateStatusMutation.mutate({ id: task.id, status: newStatus });
 	};
 
 	const handleToggleDetails = (id) => {
@@ -155,7 +123,7 @@ export default function DashboardPage() {
 			</div>
 
 			{/* Task List */}
-			{loading ? (
+			{isLoadingTasks ? (
 				<div className="flex justify-center items-center py-12 text-gray-400">
 					Loading tasks...
 				</div>
