@@ -1,26 +1,27 @@
-import { useState } from 'react'
-import './App.css'
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import LoginPage from "./pages/LoginPage";
+import DashboardPage from "./pages/DashboardPage";
+
+// Protected Route Wrapper
+const ProtectedRoute = () => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+};
 
 function App() {
-  // TODO: Implement your React application
-  // Consider:
-  // - Login/Register page
-  // - Task list view
-  // - Task creation form
-  // - API integration
-  // - State management
-  // - Error handling
-
   return (
-    <div className="App">
-      <header>
-        <h1>Task Manager</h1>
-      </header>
-      <main>
-        <p>TODO: Implement your UI</p>
-      </main>
-    </div>
-  )
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<DashboardPage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
