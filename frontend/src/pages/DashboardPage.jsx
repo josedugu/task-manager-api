@@ -1,6 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit, LogOut, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useAuth } from "../context/AuthContext";
+import { commentSchema } from "../schemas/comment.schema";
+import { taskSchema } from "../schemas/task.schema";
 import { taskService } from "../services/task.service";
 import { userService } from "../services/user.service";
 
@@ -17,12 +21,19 @@ export default function DashboardPage() {
 	const [isModalOpen, setModalOpen] = useState(false);
 	const [currentTask, setCurrentTask] = useState(null); // Task being edited
 
-	// Form State
-	const [formData, setFormData] = useState({
-		title: "",
-		description: "",
-		due_date: "",
-		assigned_to_id: "",
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors, isSubmitting },
+	} = useForm({
+		resolver: zodResolver(taskSchema),
+		defaultValues: {
+			title: "",
+			description: "",
+			due_date: "",
+			assigned_to_id: "",
+		},
 	});
 
 	const fetchTasks = useCallback(async () => {
@@ -53,7 +64,7 @@ export default function DashboardPage() {
 
 	const openCreateModal = () => {
 		setModalMode("create");
-		setFormData({
+		reset({
 			title: "",
 			description: "",
 			due_date: "",
@@ -65,26 +76,22 @@ export default function DashboardPage() {
 	const openEditModal = (task) => {
 		setModalMode("edit");
 		setCurrentTask(task);
-		setFormData({
+		reset({
 			title: task.title,
 			description: task.description || "",
-			status: task.status, // Keep current status
 			due_date: task.due_date ? task.due_date.split("T")[0] : "",
-			assigned_to_id: task.assigned_to_id || "",
+			assigned_to_id: task.assigned_to_id ? String(task.assigned_to_id) : "",
 		});
 		setModalOpen(true);
 	};
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
+	const onSubmit = async (data) => {
 		try {
 			const payload = {
-				...formData,
-				due_date: formData.due_date
-					? new Date(formData.due_date).toISOString()
-					: null,
-				assigned_to_id: formData.assigned_to_id
-					? parseInt(formData.assigned_to_id, 10)
+				...data,
+				due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
+				assigned_to_id: data.assigned_to_id
+					? parseInt(data.assigned_to_id, 10)
 					: null,
 			};
 
@@ -94,6 +101,7 @@ export default function DashboardPage() {
 				await taskService.update(currentTask.id, payload);
 			}
 
+			setModalOpen(false);
 			fetchTasks();
 		} catch (_error) {
 			alert(`Error ${modalMode === "create" ? "creating" : "updating"} task`);
@@ -325,7 +333,7 @@ export default function DashboardPage() {
 				>
 					<div className="card" style={{ width: "450px", marginBottom: 0 }}>
 						<h3>{modalMode === "create" ? "Create New Task" : "Edit Task"}</h3>
-						<form onSubmit={handleSubmit}>
+						<form onSubmit={handleSubmit(onSubmit)}>
 							<label
 								htmlFor="task-title"
 								style={{
@@ -340,12 +348,20 @@ export default function DashboardPage() {
 								id="task-title"
 								className="input"
 								placeholder="Task Title"
-								value={formData.title}
-								onChange={(e) =>
-									setFormData({ ...formData, title: e.target.value })
-								}
-								required
+								{...register("title")}
 							/>
+							{errors.title && (
+								<p
+									style={{
+										color: "red",
+										fontSize: "0.8em",
+										marginTop: "-5px",
+										marginBottom: "10px",
+									}}
+								>
+									{errors.title.message}
+								</p>
+							)}
 
 							<label
 								htmlFor="task-desc"
@@ -362,11 +378,20 @@ export default function DashboardPage() {
 								className="input"
 								placeholder="Description"
 								rows="3"
-								value={formData.description}
-								onChange={(e) =>
-									setFormData({ ...formData, description: e.target.value })
-								}
+								{...register("description")}
 							/>
+							{errors.description && (
+								<p
+									style={{
+										color: "red",
+										fontSize: "0.8em",
+										marginTop: "-5px",
+										marginBottom: "10px",
+									}}
+								>
+									{errors.description.message}
+								</p>
+							)}
 
 							<div className="flex gap-4">
 								<div style={{ flex: 1 }}>
@@ -384,11 +409,20 @@ export default function DashboardPage() {
 										id="task-due-date"
 										type="date"
 										className="input"
-										value={formData.due_date}
-										onChange={(e) =>
-											setFormData({ ...formData, due_date: e.target.value })
-										}
+										{...register("due_date")}
 									/>
+									{errors.due_date && (
+										<p
+											style={{
+												color: "red",
+												fontSize: "0.8em",
+												marginTop: "-5px",
+												marginBottom: "10px",
+											}}
+										>
+											{errors.due_date.message}
+										</p>
+									)}
 								</div>
 								<div style={{ flex: 1 }}>
 									<label
@@ -404,13 +438,7 @@ export default function DashboardPage() {
 									<select
 										id="task-assignee"
 										className="input"
-										value={formData.assigned_to_id}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												assigned_to_id: e.target.value,
-											})
-										}
+										{...register("assigned_to_id")}
 									>
 										<option value="">Unassigned</option>
 										{users.map((u) => (
@@ -419,6 +447,18 @@ export default function DashboardPage() {
 											</option>
 										))}
 									</select>
+									{errors.assigned_to_id && (
+										<p
+											style={{
+												color: "red",
+												fontSize: "0.8em",
+												marginTop: "-5px",
+												marginBottom: "10px",
+											}}
+										>
+											{errors.assigned_to_id.message}
+										</p>
+									)}
 								</div>
 							</div>
 
@@ -430,7 +470,11 @@ export default function DashboardPage() {
 								>
 									Cancel
 								</button>
-								<button type="submit" className="btn btn-primary">
+								<button
+									type="submit"
+									className="btn btn-primary"
+									disabled={isSubmitting}
+								>
 									{modalMode === "create" ? "Create" : "Update"}
 								</button>
 							</div>
@@ -446,8 +490,16 @@ export default function DashboardPage() {
 function TaskDetails({ taskId }) {
 	const [comments, setComments] = useState([]);
 	const [history, setHistory] = useState([]);
-	const [newComment, setNewComment] = useState("");
 	const [activeTab, setActiveTab] = useState("comments"); // comments | history
+
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors, isSubmitting },
+	} = useForm({
+		resolver: zodResolver(commentSchema),
+	});
 
 	useEffect(() => {
 		const loadData = async () => {
@@ -470,12 +522,14 @@ function TaskDetails({ taskId }) {
 		setHistory(h);
 	};
 
-	const handleAddComment = async (e) => {
-		e.preventDefault();
-		if (!newComment.trim()) return;
-		await taskService.addComment(taskId, newComment);
-		setNewComment("");
-		loadData(); // Refresh both
+	const handleAddComment = async (data) => {
+		try {
+			await taskService.addComment(taskId, data.content);
+			reset();
+			loadData(); // Refresh both
+		} catch (error) {
+			console.error("Failed to add comment", error);
+		}
 	};
 
 	return (
@@ -549,15 +603,34 @@ function TaskDetails({ taskId }) {
 							</div>
 						))}
 					</div>
-					<form onSubmit={handleAddComment} className="flex gap-2">
-						<input
-							className="input"
-							style={{ marginBottom: 0 }}
-							placeholder="Add a comment..."
-							value={newComment}
-							onChange={(e) => setNewComment(e.target.value)}
-						/>
-						<button type="submit" className="btn btn-primary">
+					<form
+						onSubmit={handleSubmit(handleAddComment)}
+						className="flex gap-2 items-start"
+					>
+						<div style={{ flex: 1 }}>
+							<input
+								className="input"
+								style={{ marginBottom: 0 }}
+								placeholder="Add a comment..."
+								{...register("content")}
+							/>
+							{errors.content && (
+								<p
+									style={{
+										color: "red",
+										fontSize: "0.8em",
+										marginTop: "2px",
+									}}
+								>
+									{errors.content.message}
+								</p>
+							)}
+						</div>
+						<button
+							type="submit"
+							className="btn btn-primary"
+							disabled={isSubmitting}
+						>
 							Send
 						</button>
 					</form>
