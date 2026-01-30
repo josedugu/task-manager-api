@@ -1,0 +1,145 @@
+### Task Manager API - REST Client Tests
+### Base URL
+@baseUrl = http://127.0.0.1:8000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzY5Nzk2MzY2fQ.iUu9WY8ihCnokVbf7R5K4IgWd5SQ4JQjqOUd_ZUy2II
+
+### 1. Health Check
+GET {{baseUrl}}/health HTTP/1.1
+
+###
+
+### 2. Register User (Member)
+POST {{baseUrl}}/api/v1/auth/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "Jose",
+  "email": "sgej93@gmail.com",
+  "password": "admin12345"
+}
+
+###
+
+### 3. Register Owner User
+POST {{baseUrl}}/api/v1/auth/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "email": "alice@example.com",
+  "password": "secret123"
+}
+
+###
+
+### 4. Login (Jose - Member)
+# @name login
+POST {{baseUrl}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "Jose",
+  "password": "admin12345"
+}
+
+###
+
+### 5. Create Task (as Jose)
+POST {{baseUrl}}/api/v1/tasks HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Implementar RBAC",
+  "description": "Completar implementación de roles owner/member",
+  "status": "in_progress"
+}
+
+###
+
+###
+### 6. List Tasks (All)
+GET {{baseUrl}}/api/v1/tasks HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+### 6.1 List Tasks (Filter: in_progress)
+GET {{baseUrl}}/api/v1/tasks?status=in_progress HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+### 6.2 List Tasks (Filter: done)
+GET {{baseUrl}}/api/v1/tasks?status=done HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+### 7. Get Task by ID
+GET {{baseUrl}}/api/v1/tasks/2 HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+### 8. Update Task
+PATCH {{baseUrl}}/api/v1/tasks/2 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "done",
+  "description": "RBAC implementado exitosamente"
+}
+
+###
+
+### 9. Delete Task
+DELETE {{baseUrl}}/api/v1/tasks/1 HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+### 10. Test Invalid Login
+POST {{baseUrl}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "Jose",
+  "password": "wrongpassword"
+}
+
+###
+
+### 11. Assign Task to User
+PATCH {{baseUrl}}/api/v1/tasks/1 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "assigned_to_id": 2
+}
+
+###
+
+### 12. Add Comment
+POST {{baseUrl}}/api/v1/tasks/1/comments HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "content": "Necesito ayuda con esto."
+}
+
+###
+
+### 13. List Comments
+GET {{baseUrl}}/api/v1/tasks/1/comments HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+### 14. Get Task History (Logs)
+GET {{baseUrl}}/api/v1/tasks/1/history HTTP/1.1
+Authorization: Bearer {{token}}
+
