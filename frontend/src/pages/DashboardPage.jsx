@@ -1,9 +1,9 @@
-import { LogOut, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
-import { useAuth } from "../context/AuthContext";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import TaskCard from "@/components/tasks/TaskCard";
 import TaskFormModal from "@/components/tasks/TaskFormModal";
+import { Button } from "@/components/ui/button";
 import {
 	useTasks,
 	useCreateTask,
@@ -13,18 +13,19 @@ import {
 } from "@/hooks/useTasks";
 import { useUsers } from "@/hooks/useUsers";
 
-export default function DashboardPage() {
-	const { user, logout } = useAuth();
+import { useAuth } from "@/context/AuthContext";
 
+export default function DashboardPage() {
+	const { user } = useAuth();
 	// Local UI State
-	const [statusFilter, setStatusFilter] = useState("");
+	const [statusFilter, setStatusFilter] = useState("ALL");
 	const [expandedTask, setExpandedTask] = useState(null);
 	const [modalMode, setModalMode] = useState("create");
 	const [isModalOpen, setModalOpen] = useState(false);
 	const [currentTask, setCurrentTask] = useState(null);
 
 	// Queries
-	const { data: tasks = [], isLoading: isLoadingTasks, error } = useTasks(statusFilter);
+	const { data: tasks = [], isLoading: isLoadingTasks, error } = useTasks(statusFilter === "ALL" ? null : statusFilter);
 	const { data: users = [] } = useUsers();
 
 	// Mutations
@@ -33,11 +34,8 @@ export default function DashboardPage() {
 	const deleteTaskMutation = useDeleteTask();
 	const updateStatusMutation = useUpdateTaskStatus();
 
-	if (error) {
-		console.error("Failed to load tasks", error);
-		// Note: toast.error might be called too many times if put in render.
-		// React Query handles stale/caching, error stays until resolved.
-	}
+	// Mapping for user lookup in child components
+	// Passed to TaskCard/Modal as `users` array
 
 	const openCreateModal = () => {
 		setModalMode("create");
@@ -81,83 +79,81 @@ export default function DashboardPage() {
 	};
 
 	return (
-		<div className="max-w-4xl mx-auto p-8">
-			{/* Header */}
-			<div className="flex justify-between items-center mb-8">
-				<div>
-					<h1 className="text-3xl font-bold text-gray-900">Task Manager</h1>
-					<p className="text-gray-500">
-						Welcome, {user?.username} ({user?.role})
-					</p>
+		<DashboardLayout>
+			<div className="flex flex-col gap-6">
+				{/* Page Header */}
+				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+					<div>
+						<h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+						<p className="text-muted-foreground">
+							Manage your tasks and projects efficiently.
+						</p>
+					</div>
+					<Button onClick={openCreateModal} className="gap-2">
+						<Plus className="h-4 w-4" /> New Task
+					</Button>
 				</div>
-				<button
-					type="button"
-					onClick={logout}
-					className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-				>
-					<LogOut size={16} /> Logout
-				</button>
-			</div>
 
-			{/* Controls */}
-			<div className="flex justify-between items-center mb-6">
-				<div className="flex gap-2">
+				{/* Filters */}
+				<div className="w-full sm:w-[200px]">
+					{/* Note: In shadcn, Select needs full components, but for speed we can keep native or assume select installed.
+                        I installed `select` component? I did check standard ones, but `select` might not be in my list.
+                        Ah, wait, I didn't install `select`. I installed `button input card sheet avatar dropdown-menu separator badge label textarea`.
+                        I will use a native select styled with `input` class for now to avoid errors, or try to import if standard select works.
+                        Actually I just imported CheckSquare, LayoutDashboard... from lucide. 
+                        Let's check if I can quick-install select or stick to native.
+                        I'll use native select with shadcn styles for robustness since I didn't explicitly install `select`.
+                    */}
+					{/* UPDATE: I will use native styled select for safety unless I run install */}
 					<select
-						className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+						className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 						value={statusFilter}
 						onChange={(e) => setStatusFilter(e.target.value)}
 					>
-						<option value="">All Status</option>
+						<option value="ALL">All Status</option>
 						<option value="todo">To Do</option>
 						<option value="in_progress">In Progress</option>
 						<option value="done">Done</option>
 					</select>
 				</div>
-				<button
-					type="button"
-					className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
-					onClick={openCreateModal}
-				>
-					<Plus size={18} /> New Task
-				</button>
+
+				{/* Task Grid */}
+				{isLoadingTasks ? (
+					<div className="flex justify-center items-center py-12 text-muted-foreground">
+						Loading tasks...
+					</div>
+				) : (
+					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+						{tasks.map((task) => (
+							<TaskCard
+								key={task.id}
+								task={task}
+								user={user}
+								users={users}
+								isExpanded={expandedTask === task.id}
+								onToggleDetails={handleToggleDetails}
+								onEdit={openEditModal}
+								onDelete={handleDelete}
+								onStatusChange={handleStatusChange}
+							/>
+						))}
+						{tasks.length === 0 && (
+							<div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+								No tasks found in this view.
+							</div>
+						)}
+					</div>
+				)}
+
+				<TaskFormModal
+					isOpen={isModalOpen}
+					onClose={() => setModalOpen(false)}
+					mode={modalMode}
+					initialData={currentTask}
+					users={users}
+					onSubmit={handleModalSubmit}
+				/>
 			</div>
-
-			{/* Task List */}
-			{isLoadingTasks ? (
-				<div className="flex justify-center items-center py-12 text-gray-400">
-					Loading tasks...
-				</div>
-			) : (
-				<div className="flex flex-col gap-4">
-					{tasks.map((task) => (
-						<TaskCard
-							key={task.id}
-							task={task}
-							user={user}
-							users={users}
-							isExpanded={expandedTask === task.id}
-							onToggleDetails={handleToggleDetails}
-							onEdit={openEditModal}
-							onDelete={handleDelete}
-							onStatusChange={handleStatusChange}
-						/>
-					))}
-					{tasks.length === 0 && (
-						<div className="text-center py-12 text-gray-400">
-							No tasks found. Create one to get started!
-						</div>
-					)}
-				</div>
-			)}
-
-			<TaskFormModal
-				isOpen={isModalOpen}
-				onClose={() => setModalOpen(false)}
-				mode={modalMode}
-				initialData={currentTask}
-				users={users}
-				onSubmit={handleModalSubmit}
-			/>
-		</div>
+		</DashboardLayout>
 	);
 }
