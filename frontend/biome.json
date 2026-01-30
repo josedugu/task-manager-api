@@ -6,7 +6,10 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/dist"]
+		"includes": [
+			"**",
+			"!!**/dist"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -25,7 +28,8 @@
 	},
 	"css": {
 		"parser": {
-			"cssModules": true
+			"cssModules": true,
+			"tailwindDirectives": true
 		}
 	},
 	"assist": {
