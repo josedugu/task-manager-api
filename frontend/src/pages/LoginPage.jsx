@@ -1,19 +1,27 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { loginSchema } from "../schemas/auth.schema";
 
 export default function LoginPage() {
 	const { login } = useAuth();
 	const navigate = useNavigate();
-	const [username, setUsername] = useState("");
-	const [password, setPassword] = useState("");
 	const [error, setError] = useState(null);
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
+	const {
+		register,
+		handleSubmit,
+		formState: { errors, isSubmitting },
+	} = useForm({
+		resolver: zodResolver(loginSchema),
+	});
+
+	const onSubmit = async (data) => {
 		setError(null);
 		try {
-			await login(username, password);
+			await login(data.username, data.password);
 			navigate("/"); // Go to Dashboard
 		} catch (_err) {
 			setError("Invalid credentials");
@@ -39,7 +47,7 @@ export default function LoginPage() {
 					</div>
 				)}
 
-				<form onSubmit={handleSubmit}>
+				<form onSubmit={handleSubmit(onSubmit)}>
 					<label
 						htmlFor="username"
 						style={{ display: "block", marginBottom: "0.5rem" }}
@@ -50,10 +58,13 @@ export default function LoginPage() {
 						id="username"
 						className="input"
 						type="text"
-						value={username}
-						onChange={(e) => setUsername(e.target.value)}
-						required
+						{...register("username")}
 					/>
+					{errors.username && (
+						<p style={{ color: "red", fontSize: "0.8em", marginTop: "-5px" }}>
+							{errors.username.message}
+						</p>
+					)}
 
 					<label
 						htmlFor="password"
@@ -65,17 +76,21 @@ export default function LoginPage() {
 						id="password"
 						className="input"
 						type="password"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						required
+						{...register("password")}
 					/>
+					{errors.password && (
+						<p style={{ color: "red", fontSize: "0.8em", marginTop: "-5px" }}>
+							{errors.password.message}
+						</p>
+					)}
 
 					<button
 						className="btn btn-primary"
 						style={{ width: "100%" }}
 						type="submit"
+						disabled={isSubmitting}
 					>
-						Sign In
+						{isSubmitting ? "Signing In..." : "Sign In"}
 					</button>
 				</form>
 			</div>
