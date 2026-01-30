@@ -1,22 +1,33 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { taskService } from "../services/task.service";
-import { LogOut, Plus, MessageSquare, Clock, Trash2 } from "lucide-react";
+import { userService } from "../services/user.service";
+import { LogOut, Plus, Edit, Trash2 } from "lucide-react";
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]); // List of users for assignment
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [expandedTask, setExpandedTask] = useState(null); // ID of expanded task
+  const [expandedTask, setExpandedTask] = useState(null);
 
   // Modal State
-  const [isInternalModalOpen, setModalOpen] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDesc, setNewTaskDesc] = useState("");
+  const [modalMode, setModalMode] = useState("create"); // create | edit
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [currentTask, setCurrentTask] = useState(null); // Task being edited
+
+  // Form State
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    due_date: "",
+    assigned_to_id: ""
+  });
 
   useEffect(() => {
     fetchTasks();
+    fetchUsers();
   }, [statusFilter]);
 
   const fetchTasks = async () => {
@@ -31,20 +42,53 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateTask = async (e) => {
+  const fetchUsers = async () => {
+    try {
+      const data = await userService.getAll();
+      setUsers(data);
+    } catch (error) {
+      console.error("Failed to fetch users", error);
+    }
+  };
+
+  const openCreateModal = () => {
+    setModalMode("create");
+    setFormData({ title: "", description: "", due_date: "", assigned_to_id: "" });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (task) => {
+    setModalMode("edit");
+    setCurrentTask(task);
+    setFormData({
+      title: task.title,
+      description: task.description || "",
+      status: task.status, // Keep current status
+      due_date: task.due_date ? task.due_date.split('T')[0] : "",
+      assigned_to_id: task.assigned_to_id || ""
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await taskService.create({
-        title: newTaskTitle,
-        description: newTaskDesc,
-        status: "todo"
-      });
+      const payload = {
+        ...formData,
+        due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
+        assigned_to_id: formData.assigned_to_id ? parseInt(formData.assigned_to_id) : null
+      };
+
+      if (modalMode === "create") {
+        await taskService.create({ ...payload, status: "todo" });
+      } else {
+        await taskService.update(currentTask.id, payload);
+      }
+
       setModalOpen(false);
-      setNewTaskTitle("");
-      setNewTaskDesc("");
       fetchTasks();
     } catch (error) {
-      alert("Error creating task");
+      alert(`Error ${modalMode === "create" ? "creating" : "updating"} task`);
     }
   };
 
@@ -61,10 +105,21 @@ export default function DashboardPage() {
   const handleStatusChange = async (task, newStatus) => {
     try {
       await taskService.update(task.id, { status: newStatus });
-      fetchTasks(); // Refresh to see updates or re-order
+      fetchTasks();
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const formatDueDate = (dateString) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const getAssigneeName = (id) => {
+    if (!id) return "Unassigned";
+    const u = users.find(u => u.id === id);
+    return u ? u.username : "Unknown";
   };
 
   return (
@@ -95,7 +150,7 @@ export default function DashboardPage() {
             <option value="done">Done</option>
           </select>
         </div>
-        <button className="btn btn-primary flex items-center" onClick={() => setModalOpen(true)}>
+        <button className="btn btn-primary flex items-center" onClick={openCreateModal}>
           <Plus size={18} style={{ marginRight: '5px' }} /> New Task
         </button>
       </div>
@@ -107,12 +162,21 @@ export default function DashboardPage() {
             <div key={task.id} className="card" style={{ padding: '1rem' }}>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 style={{ margin: '0 0 0.5rem 0' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {task.title}
-                    {task.assigned_to_id === user.id && <span style={{ fontSize: '0.7em', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px', color: '#0369a1' }}>Assigned to you</span>}
+                    {task.assigned_to_id === user.id && <span style={{ fontSize: '0.7em', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', color: '#0369a1' }}>You</span>}
                   </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>{task.description}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 0.5rem 0' }}>{task.description}</p>
+
+                  {/* Task Meta */}
+                  <div className="flex gap-4" style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                    {task.due_date && (
+                      <span title="Due Date">📅 {formatDueDate(task.due_date)}</span>
+                    )}
+                    <span title="Assigned To">👤 {getAssigneeName(task.assigned_to_id)}</span>
+                  </div>
                 </div>
+
                 <div className="flex flex-col items-end gap-2">
                   <div className="flex gap-2">
                     <select
@@ -124,6 +188,16 @@ export default function DashboardPage() {
                       <option value="in_progress">In Progress</option>
                       <option value="done">Done</option>
                     </select>
+
+                    <button
+                      className="btn"
+                      style={{ padding: '4px', color: '#6b7280' }}
+                      onClick={() => openEditModal(task)}
+                      title="Edit Task"
+                    >
+                      <Edit size={18} />
+                    </button>
+
                     <button
                       className="btn"
                       style={{ color: 'var(--danger)', padding: '4px' }}
@@ -145,7 +219,7 @@ export default function DashboardPage() {
 
               {/* Expanded Details */}
               {expandedTask === task.id && (
-                <TaskDetails taskId={task.id} />
+                <TaskDetails taskId={task.id} users={users} />
               )}
             </div>
           ))}
@@ -153,32 +227,65 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Create Modal */}
-      {isInternalModalOpen && (
+      {/* Create/Edit Modal */}
+      {isModalOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center'
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
-          <div className="card" style={{ width: '400px', marginBottom: 0 }}>
-            <h3>Create New Task</h3>
-            <form onSubmit={handleCreateTask}>
+          <div className="card" style={{ width: '450px', marginBottom: 0 }}>
+            <h3>{modalMode === 'create' ? 'Create New Task' : 'Edit Task'}</h3>
+            <form onSubmit={handleSubmit}>
+              <label style={{ display: 'block', fontSize: '0.9em', marginBottom: '4px' }}>Title</label>
               <input
                 className="input"
-                placeholder="Title"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder="Task Title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
               />
+
+              <label style={{ display: 'block', fontSize: '0.9em', marginBottom: '4px' }}>Description</label>
               <textarea
                 className="input"
                 placeholder="Description"
                 rows="3"
-                value={newTaskDesc}
-                onChange={(e) => setNewTaskDesc(e.target.value)}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
+
+              <div className="flex gap-4">
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.9em', marginBottom: '4px' }}>Due Date</label>
+                  <input
+                    type="date"
+                    className="input"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.9em', marginBottom: '4px' }}>Assign To</label>
+                  <select
+                    className="input"
+                    value={formData.assigned_to_id}
+                    onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.username} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="flex justify-between mt-4">
                 <button type="button" className="btn" onClick={() => setModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create</button>
+                <button type="submit" className="btn btn-primary">
+                  {modalMode === 'create' ? 'Create' : 'Update'}
+                </button>
               </div>
             </form>
           </div>
@@ -213,7 +320,7 @@ function TaskDetails({ taskId }) {
     if (!newComment.trim()) return;
     await taskService.addComment(taskId, newComment);
     setNewComment("");
-    loadData(); // Refresh both (comment adds history)
+    loadData(); // Refresh both
   };
 
   return (
@@ -240,8 +347,11 @@ function TaskDetails({ taskId }) {
           <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '1rem' }}>
             {comments.map(c => (
               <div key={c.id} style={{ background: '#f9fafb', padding: '0.5rem', borderRadius: '4px', marginBottom: '0.5rem' }}>
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>{c.content}</p>
-                <span style={{ fontSize: '0.7em', color: '#9ca3af' }}>{new Date(c.created_at).toLocaleString()}</span>
+                <div className="flex justify-between items-start">
+                  <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{c.user?.username || 'Unknown'}</span>
+                  <span style={{ fontSize: '0.7em', color: '#9ca3af' }}>{new Date(c.created_at).toLocaleString()}</span>
+                </div>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}>{c.content}</p>
               </div>
             ))}
           </div>

@@ -2,6 +2,6 @@
 API v1 routes.
 """
 
-from src.api.v1 import auth, tasks
+from src.api.v1 import auth, tasks, users
 
-__all__ = ["auth", "tasks"]
+__all__ = ["auth", "tasks", "users"]

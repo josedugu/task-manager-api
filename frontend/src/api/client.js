@@ -19,7 +19,8 @@ const request = async (endpoint, options = {}) => {
   });
 
   // Handle 401 (Unauthorized) - Auto logout
-  if (response.status === 401) {
+  // SKIP if endpoint is login (let the component handle “Invalid credentials”)
+  if (response.status === 401 && !endpoint.includes("/auth/login")) {
     localStorage.removeItem("token");
     window.location.href = "/login";
     return Promise.reject(new Error("Unauthorized"));

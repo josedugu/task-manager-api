@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U taskuser -d taskmanager"]
+      test: [ "CMD-SHELL", "pg_isready -U taskuser -d taskmanager" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://taskuser:taskpass@db:5432/taskmanager
       SECRET_KEY: dev-secret-key-change-in-production
       ALGORITHM: HS256
-      CORS_ORIGINS: http://localhost:5173
+      CORS_ORIGINS: '["http://localhost:5173"]'
     depends_on:
       db:
         condition: service_healthy

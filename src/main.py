@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.v1 import auth, tasks
+from src.api.v1 import auth, tasks, users
 from src.core.config import settings
 from src.core.logging_config import setup_logging
 from src.db import Base, engine
@@ -61,6 +61,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 
 
 # Root endpoint
