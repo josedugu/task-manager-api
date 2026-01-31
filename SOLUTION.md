@@ -272,6 +272,9 @@ npm run dev
 # App runs at http://localhost:5173
 ```
 
+> **Note on Frontend-Backend Connection:**
+> In the development environment, the connection is managed via a **Vite Proxy** configured in `vite.config.js`. This automatically redirects all requests starting with `/api` to `http://127.0.0.1:8000`, avoiding CORS issues and the need to configure environment variables for the local API URL.
+
 ### Running Tests
 
 #### Backend Tests
