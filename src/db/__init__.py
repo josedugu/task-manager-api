@@ -7,6 +7,7 @@ Centraliza imports de componentes de base de datos.
 from src.db.activity_logs import ActivityLog
 from src.db.base import AsyncSessionLocal, Base, engine
 from src.db.comments import Comment
+from src.db.notifications import Notification
 from src.db.tasks import Task
 from src.db.user_roles import UserRole
 
@@ -24,6 +25,7 @@ __all__ = [
     "Task",
     "Comment",
     "ActivityLog",
+    "Notification",
     # Enums
     "UserRole",
 ]

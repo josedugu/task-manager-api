@@ -12,6 +12,13 @@ from src.schemas.auth import LoginRequest, Token, TokenData
 # Comment schemas
 from src.schemas.comment import CommentCreate, CommentResponse
 
+# Notification schemas
+from src.schemas.notification import (
+    NotificationCreate,
+    NotificationMarkRead,
+    NotificationResponse,
+)
+
 # Task schemas
 from src.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 
@@ -37,4 +44,8 @@ __all__ = [
     "CommentResponse",
     # Activity
     "ActivityLogResponse",
+    # Notification
+    "NotificationCreate",
+    "NotificationResponse",
+    "NotificationMarkRead",
 ]

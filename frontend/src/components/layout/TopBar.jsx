@@ -1,9 +1,9 @@
-import { LogOut, User as UserIcon, Bell } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MobileSidebar } from "./Sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
+import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 
 export function TopBar() {
   const { user, logout } = useAuth();
@@ -26,13 +27,11 @@ export function TopBar() {
       <div className="flex h-16 items-center px-4 md:px-8">
         <MobileSidebar />
 
-        <div className="ml-auto flex items-center space-x-4">
-          <ModeToggle />
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-          </Button>
+		<div className="ml-auto flex items-center space-x-4">
+			<ModeToggle />
+			<NotificationsDropdown />
 
-          <DropdownMenu>
+			<DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-9 w-9">
