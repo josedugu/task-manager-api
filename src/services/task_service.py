@@ -19,6 +19,7 @@ from src.schemas import (
     TaskResponse,
     TaskUpdate,
 )
+from src.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,9 @@ class TaskService:
     async def list_tasks(
         user: User, db: AsyncSession, status_filter: str | None = None
     ) -> list[TaskResponse]:
+        # Lazy check for due date notifications
+        await NotificationService.check_and_create_due_date_notifications(db)
+
         query = select(Task)
 
         # 1. Aplicar filtro de Rol
@@ -103,6 +107,17 @@ class TaskService:
             f"Created task '{new_task.title}'",
         )
 
+        # Create notification if task is assigned to someone
+        if new_task.assigned_to_id and new_task.assigned_to_id != user.id:
+            result = await db.execute(
+                select(User).where(User.id == new_task.assigned_to_id)
+            )
+            assigned_user = result.scalar_one_or_none()
+            if assigned_user:
+                await NotificationService.create_task_assigned_notification(
+                    new_task, assigned_user, user, db
+                )
+
         await db.commit()
         await db.refresh(new_task)
         return TaskResponse.model_validate(new_task)
@@ -153,6 +168,8 @@ class TaskService:
         # Update fields
         update_dict = task_data.model_dump(exclude_unset=True)
         changes = []
+        old_assigned_to_id = task.assigned_to_id
+
         for field, value in update_dict.items():
             current_value = getattr(task, field)
             if current_value != value:
@@ -164,6 +181,25 @@ class TaskService:
             await TaskService._log_activity(
                 db, user.id, "UPDATE_TASK", "task", task.id, ", ".join(changes)
             )
+
+            # Create notification if task was assigned to someone new
+            if (
+                "assigned_to_id" in update_dict
+                and task.assigned_to_id
+                and task.assigned_to_id != old_assigned_to_id
+                and task.assigned_to_id != user.id
+            ):
+                result = await db.execute(
+                    select(User).where(User.id == task.assigned_to_id)
+                )
+                assigned_user = result.scalar_one_or_none()
+                if assigned_user:
+                    await NotificationService.create_task_assigned_notification(
+                        task, assigned_user, user, db
+                    )
+
+            # Create general update notification
+            await NotificationService.create_task_updated_notification(task, user, db)
 
         await db.commit()
         await db.refresh(task)
@@ -192,6 +228,10 @@ class TaskService:
         # Check task existence & access
         await TaskService.get_task(task_id, user, db)  # Reuses perm check logic
 
+        # Get task for notification
+        task_result = await db.execute(select(Task).where(Task.id == task_id))
+        task = task_result.scalar_one()
+
         new_comment = Comment(
             content=comment_data.content, task_id=task_id, user_id=user.id
         )
@@ -202,6 +242,9 @@ class TaskService:
         await TaskService._log_activity(
             db, user.id, "COMMENTED", "task", task_id, f"Comment ID {new_comment.id}"
         )
+
+        # Create comment notification
+        await NotificationService.create_task_comment_notification(task, user, db)
 
         await db.commit()
         await db.refresh(new_comment)
