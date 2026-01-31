@@ -29,20 +29,21 @@ export const AuthProvider = ({ children }) => {
 		const token = data.access_token;
 		localStorage.setItem("token", token);
 
-		// 2. Fetch User Details (Or use username from input since we don't have /me)
-		// Ideally backend should return user info on login or have /me endpoint.
-		// Let's assume for MVP we only have username.
-		// Wait! The /login response DOES NOT return user info, only token.
-		// We need /users/me endpoint? Or decode JWT.
-		// For MVP speed: just save username provided.
-		// UPDATE: Our backend doesn't have /me. Let's decode or simply store the username entered.
-
+		// 2. Decode JWT to extract user ID
+		// NOTE: A production app should validate JWT signature server-side.
+		// Here we only decode to extract the user ID from the payload.
 		const userInfo = { username, role: "member" }; // Defaulting for now
-		// NOTE: A better way is to parse the JWT payload which contains "sub" (id).
 
-		// Let's rely on decoding JWT to get ID at least.
-		const payload = JSON.parse(atob(token.split(".")[1]));
-		userInfo.id = payload.sub;
+		try {
+			// Safely decode JWT payload
+			const payload = JSON.parse(atob(token.split(".")[1]));
+			userInfo.id = payload.sub;
+		} catch (error) {
+			// Token is malformed or invalid - force logout for security
+			console.error("Failed to decode JWT:", error);
+			logout();
+			throw new Error("Invalid authentication token");
+		}
 
 		setUser(userInfo);
 		localStorage.setItem("user", JSON.stringify(userInfo));
