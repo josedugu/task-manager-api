@@ -14,21 +14,30 @@ const ProtectedRoute = () => {
 	return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+import { ThemeProvider } from "@/components/theme-provider";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import ErrorPage from "@/pages/ErrorPage";
+
 function App() {
 	return (
-		<QueryClientProvider client={queryClient}>
-			<Toaster position="bottom-right" richColors />
-			<Routes>
-				<Route path="/login" element={<LoginPage />} />
+		<ErrorBoundary>
+			<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+				<QueryClientProvider client={queryClient}>
+					<Toaster position="bottom-right" richColors />
+					<Routes>
+						<Route path="/login" element={<LoginPage />} />
 
-				{/* Protected Routes */}
-				<Route element={<ProtectedRoute />}>
-					<Route path="/" element={<DashboardPage />} />
-				</Route>
+						{/* Protected Routes */}
+						<Route element={<ProtectedRoute />}>
+							<Route path="/" element={<DashboardPage />} />
+						</Route>
 
-				<Route path="*" element={<Navigate to="/" replace />} />
-			</Routes>
-		</QueryClientProvider>
+						{/* 404 Route */}
+						<Route path="*" element={<ErrorPage type="404" />} />
+					</Routes>
+				</QueryClientProvider>
+			</ThemeProvider>
+		</ErrorBoundary>
 	);
 }
 

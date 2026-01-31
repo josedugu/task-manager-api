@@ -14,6 +14,7 @@ import {
 import { useUsers } from "@/hooks/useUsers";
 
 import { useAuth } from "@/context/AuthContext";
+import { TaskCardSkeleton } from "@/components/tasks/TaskCardSkeleton";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -117,10 +118,14 @@ export default function DashboardPage() {
 					</select>
 				</div>
 
+				{/* Filters */}
+
 				{/* Task Grid */}
 				{isLoadingTasks ? (
-					<div className="flex justify-center items-center py-12 text-muted-foreground">
-						Loading tasks...
+					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+						{Array.from({ length: 6 }).map((_, i) => (
+							<TaskCardSkeleton key={i} />
+						))}
 					</div>
 				) : (
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
