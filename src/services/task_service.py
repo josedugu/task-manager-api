@@ -145,7 +145,13 @@ class TaskService:
     async def update_task(
         task_id: int, task_data: TaskUpdate, user: User, db: AsyncSession
     ) -> TaskResponse:
-        result = await db.execute(select(Task).where(Task.id == task_id))
+        from sqlalchemy.orm import selectinload
+
+        result = await db.execute(
+            select(Task)
+            .where(Task.id == task_id)
+            .options(selectinload(Task.owner), selectinload(Task.assigned_to))
+        )
         task = result.scalar_one_or_none()
 
         if not task:
@@ -228,8 +234,14 @@ class TaskService:
         # Check task existence & access
         await TaskService.get_task(task_id, user, db)  # Reuses perm check logic
 
-        # Get task for notification
-        task_result = await db.execute(select(Task).where(Task.id == task_id))
+        # Get task for notification (with eager loading to avoid lazy load issues)
+        from sqlalchemy.orm import selectinload
+
+        task_result = await db.execute(
+            select(Task)
+            .where(Task.id == task_id)
+            .options(selectinload(Task.owner), selectinload(Task.assigned_to))
+        )
         task = task_result.scalar_one()
 
         new_comment = Comment(

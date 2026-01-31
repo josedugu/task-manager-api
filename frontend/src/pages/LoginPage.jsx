@@ -27,7 +27,7 @@ export default function LoginPage() {
 		try {
 			await login(data.username, data.password);
 			toast.success("Successfully logged in");
-			navigate("/");
+			navigate("/task");
 		} catch (_err) {
 			toast.error("Invalid credentials");
 		}

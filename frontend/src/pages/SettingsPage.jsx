@@ -2,7 +2,7 @@ import { useRef } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CanvasBlocks from "@/components/placeholder/CanvasBlocks";
 
-export default function DashboardPage() {
+export default function SettingsPage() {
 	const titleRef = useRef(null);
 	return (
 		<DashboardLayout>
@@ -19,7 +19,7 @@ export default function DashboardPage() {
 						Page under construction
 					</div>
 					<p className="text-muted-foreground text-base sm:text-lg">
-						We are working on the metrics dashboard.
+						We are working on settings.
 					</p>
 				</div>
 			</div>

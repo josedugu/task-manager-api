@@ -7,8 +7,6 @@ import {
   History,
   MessageSquare,
   User,
-  Calendar,
-  CheckCircle,
   AlertCircle,
   Plus,
   Edit,
@@ -63,11 +61,11 @@ export default function TaskDetails({ taskId, users = [] }) {
         const fromName =
           from === "None"
             ? "Unassigned"
-            : users.find((u) => u.id === parseInt(from))?.username || from;
+            : users.find((u) => u.id === parseInt(from, 10))?.username || from;
         const toName =
           to === "None"
             ? "Unassigned"
-            : users.find((u) => u.id === parseInt(to))?.username || to;
+            : users.find((u) => u.id === parseInt(to, 10))?.username || to;
         return (
           <span>
             Changed assignee from <strong>{fromName}</strong> to{" "}

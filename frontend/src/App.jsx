@@ -1,9 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { useAuth } from "./context/AuthContext";
-import DashboardPage from "./pages/DashboardPage";
-import LoginPage from "./pages/LoginPage";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -16,7 +15,18 @@ const ProtectedRoute = () => {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import ErrorPage from "@/pages/ErrorPage";
+
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const TasksPage = lazy(() => import("./pages/TasksPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ErrorPage = lazy(() => import("./pages/ErrorPage"));
+
+const RouteFallback = () => (
+	<div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">
+		Loading...
+	</div>
+);
 
 function App() {
 	return (
@@ -24,17 +34,22 @@ function App() {
 			<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
 				<QueryClientProvider client={queryClient}>
 					<Toaster position="bottom-right" richColors />
-					<Routes>
-						<Route path="/login" element={<LoginPage />} />
+					<Suspense fallback={<RouteFallback />}>
+						<Routes>
+							<Route path="/login" element={<LoginPage />} />
 
-						{/* Protected Routes */}
-						<Route element={<ProtectedRoute />}>
-							<Route path="/" element={<DashboardPage />} />
-						</Route>
+							{/* Protected Routes */}
+							<Route element={<ProtectedRoute />}>
+								<Route path="/" element={<Navigate to="/task" replace />} />
+								<Route path="/task" element={<TasksPage />} />
+								<Route path="/dashboard" element={<DashboardPage />} />
+								<Route path="/settings" element={<SettingsPage />} />
+							</Route>
 
-						{/* 404 Route */}
-						<Route path="*" element={<ErrorPage type="404" />} />
-					</Routes>
+							{/* 404 Route */}
+							<Route path="*" element={<ErrorPage type="404" />} />
+						</Routes>
+					</Suspense>
 				</QueryClientProvider>
 			</ThemeProvider>
 		</ErrorBoundary>
