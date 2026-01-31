@@ -52,13 +52,13 @@ export default function TaskCard({
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              {task.title}
+              {task.title || "Untitled Task"}
               {task.assigned_to_id === user.id && (
                 <Badge variant="secondary" className="text-[10px] px-1.5 h-5">You</Badge>
               )}
             </CardTitle>
             <CardDescription className="line-clamp-2 text-xs">
-              {task.description}
+              {task.description || "No description provided."}
             </CardDescription>
           </div>
         </div>

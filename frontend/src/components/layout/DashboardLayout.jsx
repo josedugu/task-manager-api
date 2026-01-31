@@ -3,7 +3,7 @@ import { TopBar } from "./TopBar";
 
 export default function DashboardLayout({ children }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50/50">
+    <div className="flex h-screen overflow-hidden bg-muted/40">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col">
         <Sidebar />
