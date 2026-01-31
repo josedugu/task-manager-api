@@ -6,8 +6,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { label: "Tasks", icon: CheckSquare, href: "/tasks" }, // Future Route
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Tasks", icon: CheckSquare, href: "/task" },
   { label: "Settings", icon: Settings, href: "/settings" }, // Future Route
 ];
 

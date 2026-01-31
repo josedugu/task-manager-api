@@ -36,13 +36,6 @@ export default function TaskCard({
     return u ? u.username : "Unknown";
   };
 
-  // Status colors mapping
-  const statusColors = {
-    todo: "secondary",      // Grey
-    in_progress: "default", // Black/Primary
-    done: "outline"         // White with border
-  };
-
   // Native Select Styles matching shadcn Input
   const selectStyles = "flex h-8 w-28 items-center justify-between rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
