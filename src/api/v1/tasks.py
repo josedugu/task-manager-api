@@ -21,20 +21,26 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 @router.get("", response_model=list[TaskResponse])
 async def list_tasks(
-    current_user: CurrentUser, db: DatabaseDep, status: str | None = None
+    current_user: CurrentUser,
+    db: DatabaseDep,
+    status: str | None = None,
+    search: str | None = None,
 ) -> list[TaskResponse]:
     """
-    Lista las tareas del usuario, opcionalmente filtradas por estado.
+    Lista las tareas del usuario, opcionalmente filtradas por estado y/o búsqueda.
 
     Args:
         current_user: Usuario autenticado
         db: Sesión de base de datos
         status: (Query Param) Filtro opcional por estado (pending, in_progress, done)
+        search: (Query Param) Búsqueda por título o descripción
 
     Returns:
         list[TaskResponse]: Lista de tareas
     """
-    return await TaskService.list_tasks(current_user, db, status_filter=status)
+    return await TaskService.list_tasks(
+        current_user, db, status_filter=status, search=search
+    )
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
