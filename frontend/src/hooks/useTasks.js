@@ -6,7 +6,7 @@ import { toast } from "sonner";
 export const taskKeys = {
   all: ["tasks"],
   lists: () => [...taskKeys.all, "list"],
-  list: (status) => [...taskKeys.lists(), { status }],
+  list: (status, search) => [...taskKeys.lists(), { status, search }],
   details: () => [...taskKeys.all, "detail"],
   detail: (id) => [...taskKeys.details(), id],
   comments: (id) => [...taskKeys.detail(id), "comments"],
@@ -15,10 +15,10 @@ export const taskKeys = {
 
 // -- Queries --
 
-export function useTasks(statusFilter) {
+export function useTasks(statusFilter, searchTerm) {
   return useQuery({
-    queryKey: taskKeys.list(statusFilter),
-    queryFn: () => taskService.getAll(statusFilter || null),
+    queryKey: taskKeys.list(statusFilter, searchTerm),
+    queryFn: () => taskService.getAll(statusFilter || null, searchTerm || null),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

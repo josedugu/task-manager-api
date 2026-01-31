@@ -1,8 +1,11 @@
 import { api } from "../api/client";
 
 export const taskService = {
-	getAll: async (statusFilter = null) => {
-		const query = statusFilter ? `?status=${statusFilter}` : "";
+	getAll: async (statusFilter = null, searchTerm = null) => {
+		const params = new URLSearchParams();
+		if (statusFilter) params.append("status", statusFilter);
+		if (searchTerm) params.append("search", searchTerm);
+		const query = params.toString() ? `?${params.toString()}` : "";
 		return api.get(`/tasks${query}`);
 	},
 	getById: async (id) => {

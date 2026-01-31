@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import TaskCard from "@/components/tasks/TaskCard";
@@ -15,19 +15,28 @@ import { useUsers } from "@/hooks/useUsers";
 
 import { useAuth } from "@/context/AuthContext";
 import { TaskCardSkeleton } from "@/components/tasks/TaskCardSkeleton";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Input } from "@/components/ui/input";
 
 export default function TasksPage() {
 	const { user } = useAuth();
 	// Local UI State
 	const [statusFilter, setStatusFilter] = useState("ALL");
+	const [searchInput, setSearchInput] = useState("");
 	const [expandedTask, setExpandedTask] = useState(null);
 	const [modalMode, setModalMode] = useState("create");
 	const [isModalOpen, setModalOpen] = useState(false);
 	const [currentTask, setCurrentTask] = useState(null);
 	const skeletonKeys = ["sk-1", "sk-2", "sk-3", "sk-4", "sk-5", "sk-6"];
 
+	// Debounce search to avoid excessive API calls
+	const debouncedSearch = useDebounce(searchInput, 400);
+
 	// Queries
-	const { data: tasks = [], isLoading: isLoadingTasks } = useTasks(statusFilter === "ALL" ? null : statusFilter);
+	const { data: tasks = [], isLoading: isLoadingTasks } = useTasks(
+		statusFilter === "ALL" ? null : statusFilter,
+		debouncedSearch || null
+	);
 	const { data: users = [] } = useUsers();
 
 	// Mutations
@@ -97,18 +106,31 @@ export default function TasksPage() {
 				</div>
 
 				{/* Filters */}
-				<div className="w-full sm:w-[200px]">
-					{/* Note: In shadcn, Select needs full components, but for speed we can keep native or assume select installed.
-                        I installed `select` component? I did check standard ones, but `select` might not be in my list.
-                        Ah, wait, I didn't install `select`. I installed `button input card sheet avatar dropdown-menu separator badge label textarea`.
-                        I will use a native select styled with `input` class for now to avoid errors, or try to import if standard select works.
-                        Actually I just imported CheckSquare, LayoutDashboard... from lucide. 
-                        Let's check if I can quick-install select or stick to native.
-                        I'll use native select with shadcn styles for robustness since I didn't explicitly install `select`.
-                    */}
-					{/* UPDATE: I will use native styled select for safety unless I run install */}
+				<div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+					{/* Search Input */}
+					<div className="relative w-full sm:w-[280px]">
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Input
+							type="text"
+							placeholder="Search tasks..."
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+							className="pl-9 pr-9"
+						/>
+						{searchInput && (
+							<button
+								type="button"
+								onClick={() => setSearchInput("")}
+								className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+							>
+								<X className="h-4 w-4" />
+							</button>
+						)}
+					</div>
+
+					{/* Status Filter */}
 					<select
-						className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+						className="flex h-10 w-full sm:w-[160px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 						value={statusFilter}
 						onChange={(e) => setStatusFilter(e.target.value)}
 					>
@@ -118,8 +140,6 @@ export default function TasksPage() {
 						<option value="done">Done</option>
 					</select>
 				</div>
-
-				{/* Filters */}
 
 				{/* Task Grid */}
 				{isLoadingTasks ? (

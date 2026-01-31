@@ -49,7 +49,10 @@ class TaskService:
 
     @staticmethod
     async def list_tasks(
-        user: User, db: AsyncSession, status_filter: str | None = None
+        user: User,
+        db: AsyncSession,
+        status_filter: str | None = None,
+        search: str | None = None,
     ) -> list[TaskResponse]:
         # Lazy check for due date notifications
         await NotificationService.check_and_create_due_date_notifications(db)
@@ -69,6 +72,15 @@ class TaskService:
         if status_filter:
             logger.info(f"Filtering by status: {status_filter}")
             query = query.where(Task.status == status_filter)
+
+        # 3. Aplicar filtro de búsqueda (título o descripción)
+        if search:
+            search_pattern = f"%{search}%"
+            logger.info(f"Searching for: {search}")
+            query = query.where(
+                (Task.title.ilike(search_pattern))
+                | (Task.description.ilike(search_pattern))
+            )
 
         result = await db.execute(query)
         tasks = result.scalars().all()

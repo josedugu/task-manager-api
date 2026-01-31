@@ -4,8 +4,12 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from src.api.dependencies import get_db
+from src.core.security_middleware import limiter
 from src.db.base import Base
 from src.main import app
+
+# Disable rate limiting for tests
+limiter.enabled = False
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

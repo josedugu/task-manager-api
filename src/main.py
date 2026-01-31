@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.v1 import auth, notifications, tasks, users
 from src.core.config import settings
 from src.core.logging_config import setup_logging
+from src.core.security_middleware import setup_security_middleware
 from src.db import Base, engine
 
 # Setup logging
@@ -49,13 +50,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
+# Security middleware (Rate Limiting + Security Headers)
+setup_security_middleware(app)
+
+# CORS middleware (restrictive configuration)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+    expose_headers=["X-Total-Count", "X-RateLimit-Limit", "X-RateLimit-Remaining"],
+    max_age=3600,
 )
 
 # Include routers
@@ -78,8 +84,5 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check."""
-    return {
-        "status": "healthy",
-        "database": "connected",
-    }
+    """Health check endpoint (minimal info for security)."""
+    return {"status": "ok"}

@@ -14,6 +14,7 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4", # Para passwords
     "email-validator>=2.3.0",
     "bcrypt>=5.0.0",
+    "slowapi>=0.1.9",  # Rate limiting para protección DDoS
 ]
 
 [project.optional-dependencies]

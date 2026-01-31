@@ -43,11 +43,12 @@ class NotificationService:
         )
 
         db.add(notification)
-        await db.commit()
+        await db.flush()
         await db.refresh(notification)
 
         logger.info(
-            f"Notification created: type={notification.type}, user_id={notification.user_id}"
+            f"Notification created: type={notification.type}, "
+            f"user_id={notification.user_id}"
         )
         return notification
 
